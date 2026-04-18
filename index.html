@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>전도 미로</title>
+<link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<!-- START -->
+<div class="screen active" id="startScreen" style="position:relative;padding:0;overflow:hidden;min-height:100vh;align-items:center;justify-content:center;">
+<img alt="전도 미로 인트로" src="./assets/01_전도_미로_인트로.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;background:#0a2a4a;z-index:0;"/>
+<div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;margin-top:clamp(200px,32vw,340px);">
+<div class="intro-btn-group">
+<button class="btn btn-start-intro" onclick="initAudio();playUiSound();showScr('modeScreen')">시작하기</button>
+<!-- [수정] 게임 방법 버튼 추가 -->
+<button class="btn btn-guide-intro" onclick="initAudio();playUiSound();openGuideModal()" type="button">게임 방법</button>
+</div>
+</div>
+</div>
+<!-- MODE SELECT -->
+<div class="screen" id="modeScreen">
+<h2 style="color:var(--dark);font-size:1.9em;margin-bottom:4px;">🎮 모드 선택</h2>
+<div class="card-grid">
+<div class="sel-card" onclick="setMode('solo')">
+<div class="ci">
+<img alt="혼자 탐구 아이콘" class="mode-icon" src="./assets/02_혼자_탐구_아이콘.png"/>
+</div>
+<h3>혼자 탐구</h3><p>내 속도대로<br/>탐구해요</p>
+</div>
+<div class="sel-card" onclick="setMode('1vsCPU')">
+<div class="ci">
+<img alt="CPU와 대결 아이콘" class="mode-icon" src="./assets/03_CPU와_대결_아이콘.png"/>
+</div>
+<h3>CPU와 대결</h3><p>컴퓨터보다<br/>빨리 완성하세요!</p>
+</div>
+</div>
+</div>
+<!-- LEVEL SELECT -->
+<div class="screen" id="levelScreen">
+<h2 style="color:var(--dark);font-size:1.9em;">🎯 단계 선택</h2>
+<div class="card-grid">
+<div class="sel-card" onclick="startLevel(0)">
+<div class="ci">
+<img alt="초급 단계 프라이팬 아이콘" class="mode-icon" src="./assets/04_초급_단계_프라이팬_아이콘.png"/>
+</div>
+<h3>1단계 · 초급</h3><p>프라이팬 달구기<br/>직선 길 연결</p>
+</div>
+<div class="sel-card" onclick="startLevel(1)">
+<div class="ci">
+<img alt="중급 단계 초콜릿 아이콘" class="mode-icon" src="./assets/05_중급_단계_초콜릿_아이콘.png"/>
+</div>
+<h3>2단계 · 중급</h3><p>초콜릿 녹이기<br/>꺾인 길 연결</p>
+</div>
+<div class="sel-card" onclick="startLevel(2)">
+<div class="ci">
+<img alt="응용 단계 얼음 아이콘" class="mode-icon" src="./assets/06_응용_단계_얼음_아이콘.png"/>
+</div>
+<h3>3단계 · 응용</h3><p>얼음 녹이기<br/>방해 조각 피하기</p>
+</div>
+</div>
+<button class="btn btn-outline btn-sm" onclick="showScr('modeScreen')" style="margin-top:6px;">← 모드 선택</button>
+</div>
+<!-- SOLO GAME -->
+<div class="screen" id="gameScreen">
+<div class="g-header">
+<button class="btn btn-outline btn-sm" onclick="goLevelSelect()">← 단계 선택</button>
+<h2 id="gTitle">1단계</h2><span class="badge" id="gBadge">초급</span>
+</div>
+<div class="g-area">
+<canvas id="soloCanvas"></canvas>
+<div class="pp">
+<h4>🧩 조각</h4>
+<div class="pl" id="soloPL"></div>
+<div style="margin-top:10px;text-align:center;display:flex;flex-direction:column;gap:7px;">
+<button class="btn btn-outline btn-sm" onclick="clearPG(0)" style="font-size:.82em;padding:7px 12px;color:#d00;">삭제</button>
+</div>
+</div>
+</div>
+<div class="ctrls">
+<button class="btn btn-primary" id="soloHeatBtn" onclick="heatPlayer(0)">가열 시작!</button>
+<button class="btn btn-outline btn-sm" onclick="resetLv()">↺ 다시 놓기</button>
+</div>
+</div>
+<!-- RACE -->
+<div class="screen" id="raceScreen">
+<div class="r-header">
+<button class="btn btn-outline btn-sm" onclick="goLevelSelect()">← 단계 선택</button>
+<h2 id="rTitle">경쟁 모드</h2>
+<div class="r-status" id="rStatus">🏁 준비!</div>
+</div>
+<div class="r-arena">
+<div class="pzone z0" id="zone0">
+<div class="plabel pl0bg">👤 플레이어 1</div>
+<canvas class="race-canvas" id="rCanvas0"></canvas>
+<div class="rpi-wrap" id="rPL0"></div>
+<div class="r-ctrls">
+<button class="btn btn-outline btn-sm" onclick="clearPG(0)" style="color:#d00;">삭제</button>
+<button class="btn btn-sm btn-primary" id="rHeat0" onclick="heatPlayer(0)">가열!</button>
+</div>
+</div>
+<div class="vs-div">VS</div>
+<div class="pzone z1" id="zone1">
+<div class="plabel pl1bg" id="p2lbl">🤖 CPU</div>
+<canvas class="race-canvas" id="rCanvas1"></canvas>
+<div class="rpi-wrap" id="rPL1"></div>
+<div class="r-ctrls" id="p2ctrls">
+<button class="btn btn-outline btn-sm" onclick="clearPG(1)" style="color:#d00;">삭제</button>
+<button class="btn btn-sm btn-primary" id="rHeat1" onclick="heatPlayer(1)">가열!</button>
+</div>
+<div class="cpu-status" id="cpuSt" style="display:none;">🤖 CPU 생각 중...</div>
+</div>
+</div>
+</div>
+<!-- [수정] 게임 방법 모달 추가 -->
+<div aria-hidden="true" class="mo guide-modal" id="guideModal">
+<div aria-labelledby="guideModalTitle" aria-modal="true" class="md" role="dialog">
+<button aria-label="게임 방법 닫기" class="guide-close-x" onclick="closeGuideModal()" type="button">×</button>
+<h3 id="guideModalTitle">게임 방법</h3>
+<ol class="guide-list">
+<li>게임 모드를 선택해요. (혼자 탐구, CPU와 대결)</li>
+<li>게임 단계를 선택해요. (초급, 중급, 응용)</li>
+<li>원하는 길 조각을 선택하고 길 조각을 놓을 장소를 선택하면 길 조각이 놓여요.</li>
+<li>도착 지점까지 열이 도착할 수 있도록 길을 만들어요.</li>
+<li>길을 완성하고 가열 시작 버튼을 누르면 열이 전달되는 모습을 확인할 수 있어요.</li>
+</ol>
+<div class="guide-foot">
+<button class="btn btn-primary btn-sm" onclick="closeGuideModal()" type="button">닫기</button>
+</div>
+</div>
+</div>
+<!-- MODAL -->
+<div class="mo" id="modal">
+<div class="md">
+<div class="ri" id="mIcon">🎉</div>
+<h3 id="mTitle"></h3>
+<div id="mStars" style="font-size:1.9em;margin:6px 0;letter-spacing:4px;"></div>
+<p id="mMsg"></p>
+<div class="cbox" id="mConcept"></div>
+<div class="btn-row">
+<button class="btn btn-outline btn-sm" onclick="resetLv();closeModal()">↺ 다시 놓기</button>
+<button class="btn btn-outline btn-sm" id="mHome" onclick="closeModal();showScr('startScreen')" style="display:none;">처음으로</button>
+<button class="btn btn-acc btn-sm" id="mNext" onclick="nextLv()">다음 단계 →</button>
+</div>
+</div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
