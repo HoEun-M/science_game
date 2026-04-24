@@ -167,15 +167,26 @@ let audioCtx=null;
 let bgmStarted=false;
 let bgmTimer=null;
 let bgmStep=0;
-const BGM_SEQ=[
-  [523.25,659.25,783.99],
-  [587.33,698.46,880.00],
-  [659.25,783.99,987.77],
-  [587.33,698.46,880.00],
-  [523.25,659.25,783.99],
-  [493.88,659.25,783.99],
-  [440.00,554.37,659.25],
-  [493.88,587.33,739.99]
+// [수정] BGM을 업로드된 레퍼런스 음원(~126BPM, Am-F-C-G 루프)에 맞춰 재설계
+// 8스텝 = 1마디(4박, 8분음표 단위). 총 4마디로 Am-F-C-G 한 사이클 반복.
+// 각 엔트리: {root: 베이스 주파수, chord: 상성부 3화음 배열}
+const BGM_CHORDS=[
+  {root:220.00, chord:[261.63,329.63,440.00]}, // Am : A3 - C4 E4 A4
+  {root:174.61, chord:[261.63,349.23,440.00]}, // F  : F3 - C4 F4 A4
+  {root:130.81, chord:[261.63,329.63,392.00]}, // C  : C3 - C4 E4 G4
+  {root:196.00, chord:[246.94,293.66,392.00]}  // G  : G3 - B3 D4 G4
+];
+// 각 코드 안에서 8분음표 단위로 어떤 멜로디 음을 찍을지 (아르페지오 패턴)
+// 0=rest, 그 외는 주파수(Hz). 업로드 음원의 밝고 경쾌한 리듬감을 반영.
+const BGM_MELODY=[
+  // Am 마디
+  [523.25,0,659.25,783.99,0,659.25,880.00,0],
+  // F 마디
+  [523.25,0,698.46,880.00,0,698.46,1046.50,0],
+  // C 마디
+  [523.25,0,659.25,783.99,0,1046.50,783.99,659.25],
+  // G 마디
+  [493.88,0,587.33,783.99,0,587.33,987.77,783.99]
 ];
 function initAudio(){
   if(!audioCtx){
@@ -213,12 +224,27 @@ function playFailSound(){initAudio();playTone(320,0.12,'sawtooth',0.035);playTon
 function startBGM(){
   if(bgmStarted||!audioCtx)return;
   bgmStarted=true;
-  const tick=0.34;
+  // 126 BPM → 4분음표 ≈ 0.476s → 8분음표 ≈ 0.238s
+  const tick=0.238;
   const playStep=()=>{
     if(!audioCtx)return;
-    const chord=BGM_SEQ[bgmStep%BGM_SEQ.length];
-    chord.forEach((f,i)=>playTone(f,tick*0.9,i===0?'triangle':'sine',i===0?0.018:0.012,i*0.015));
-    if(bgmStep%2===0)playTone(chord[0]/2,tick*0.85,'triangle',0.012,0.02);
+    const bar=Math.floor(bgmStep/8)%BGM_CHORDS.length; // 8스텝마다 코드 변경
+    const pos=bgmStep%8; // 마디 내 8분음표 위치
+    const c=BGM_CHORDS[bar];
+    // 1) 베이스: 매 박(짝수 스텝)마다 루트 톤, 강박(0,4)은 살짝 더 큼
+    if(pos%2===0){
+      const bassVol=(pos===0)?0.028:0.02;
+      playTone(c.root,tick*1.7,'triangle',bassVol,0);
+    }
+    // 2) 화음 패드: 매 박 첫 부분에 부드러운 코드(sine), 길게 울림
+    if(pos===0||pos===4){
+      c.chord.forEach((f,i)=>playTone(f,tick*3.6,'sine',0.009,i*0.008));
+    }
+    // 3) 멜로디 아르페지오: 8분음표 단위로 밝은 triangle 톤
+    const mel=BGM_MELODY[bar][pos];
+    if(mel>0){
+      playTone(mel,tick*0.92,'triangle',0.016,0);
+    }
     bgmStep++;
   };
   playStep();
